@@ -1,19 +1,133 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>O Esquimó - Página Dinâmica</title>
-  <link rel="stylesheet" href="assets/css/style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>O Esquimó - Refrigeração e Climatização</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles/main.css">
 </head>
 <body>
-  <header>
-    <h1>O Esquimó</h1>
-    <p>Página gerada dinamicamente</p>
-  </header>
+    <header>
+        <nav class="navbar">
+            <div class="nav-container">
+                <div class="nav-logo">
+                    <i class="fas fa-snowflake"></i>
+                    <span>O Esquimó</span>
+                </div>
+                <ul class="nav-menu">
+                    <li class="nav-item">
+                        <a href="#home" class="nav-link">Início</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#services" class="nav-link">Serviços</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#about" class="nav-link">Sobre</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#contact" class="nav-link">Contato</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="admin.html" class="nav-link admin-btn">Painel Admin</a>
+                    </li>
+                </ul>
+                <div class="hamburger">
+                    <span class="bar"></span>
+                    <span class="bar"></span>
+                    <span class="bar"></span>
+                </div>
+            </div>
+        </nav>
+    </header>
 
-  <main id="conteudo" class="grid-container"></main>
+    <main>
+        <section id="home" class="hero">
+            <div class="hero-content">
+                <h1>Especialistas em Refrigeração e Climatização</h1>
+                <p>Soluções completas para sua casa ou empresa com qualidade e garantia</p>
+                <a href="#services" class="btn btn-primary">Nossos Serviços</a>
+            </div>
+        </section>
 
-  <script type="module" src="assets/js/index.js"></script>
+        <section id="services" class="services">
+            <div class="container">
+                <h2>Nossos Serviços</h2>
+                <div class="services-grid" id="services-container">
+                    <!-- Os serviços serão carregados dinamicamente via JavaScript -->
+                    <div class="loading">Carregando serviços...</div>
+                </div>
+            </div>
+        </section>
+
+        <section id="about" class="about">
+            <div class="container">
+                <h2>Sobre Nós</h2>
+                <div class="about-content">
+                    <div class="about-text">
+                        <p>Há mais de 10 anos no mercado, a O Esquimó oferece serviços especializados em refrigeração e climatização para residências e empresas.</p>
+                        <p>Nossa equipe é composta por técnicos altamente qualificados e certificados, prontos para oferecer o melhor atendimento e soluções personalizadas para cada cliente.</p>
+                    </div>
+                    <div class="about-image">
+                        <img src="https://placehold.co/600x400/3498db/ffffff" alt="Equipe O Esquimó">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="contact" class="contact">
+            <div class="container">
+                <h2>Entre em Contato</h2>
+                <div class="contact-content">
+                    <div class="contact-info">
+                        <div class="contact-item">
+                            <i class="fas fa-phone"></i>
+                            <span id="contact-phone">(81) 98325-9341</span>
+                        </div>
+                        <div class="contact-item">
+                            <i class="fas fa-envelope"></i>
+                            <span>contato@oesquimo.com</span>
+                        </div>
+                        <div class="contact-item">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span>Recife - PE</span>
+                        </div>
+                    </div>
+                    <div class="contact-form">
+                        <form id="contactForm">
+                            <div class="form-group">
+                                <input type="text" placeholder="Seu nome" required>
+                            </div>
+                            <div class="form-group">
+                                <input type="email" placeholder="Seu e-mail" required>
+                            </div>
+                            <div class="form-group">
+                                <input type="tel" placeholder="Seu telefone" required>
+                            </div>
+                            <div class="form-group">
+                                <textarea placeholder="Sua mensagem" rows="5" required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Enviar Mensagem</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2023 O Esquimó - Todos os direitos reservados</p>
+        </div>
+    </footer>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
+    
+    <!-- Nossos scripts -->
+    <script src="scripts/firebase-config.js"></script>
+    <script src="scripts/utils.js"></script>
+    <script src="scripts/main.js"></script>
 </body>
 </html>
