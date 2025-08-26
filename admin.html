@@ -1,44 +1,321 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Painel Administrativo</title>
-  <link rel="stylesheet" href="assets/css/style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Administrativo - O Esquimó</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles/admin.css">
 </head>
 <body>
-  <header>
-    <h1>Painel Administrativo</h1>
-    <p>Gerencie os componentes da página inicial</p>
-  </header>
+    <!-- Login Screen -->
+    <div id="login-screen" class="login-container">
+        <div class="login-form">
+            <h2><i class="fas fa-snowflake"></i> Painel Administrativo</h2>
+            <div class="form-group">
+                <label for="login-email">E-mail</label>
+                <input type="email" id="login-email" placeholder="seu@email.com">
+            </div>
+            <div class="form-group">
+                <label for="login-password">Senha</label>
+                <input type="password" id="login-password" placeholder="Sua senha">
+            </div>
+            <button id="btn-login" class="btn btn-primary" style="width: 100%">Entrar</button>
+            <p id="login-message" style="margin-top: 15px; color: var(--danger); text-align: center;"></p>
+        </div>
+    </div>
 
-  <main>
-    <section>
-      <h2>Adicionar Componente</h2>
-      <form id="formAdd">
-        <label>Tipo de Componente:</label>
-        <select id="tipo">
-          <option value="h1">Título (h1)</option>
-          <option value="h2">Subtítulo (h2)</option>
-          <option value="p">Parágrafo</option>
-          <option value="img">Imagem</option>
-          <option value="button">Botão</option>
-        </select>
+    <!-- Admin Panel -->
+    <div id="admin-panel" class="admin-container hidden">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h1><i class="fas fa-snowflake"></i> O Esquimó</h1>
+                <p>Painel Administrativo</p>
+            </div>
+            
+            <ul class="sidebar-menu">
+                <li><a href="#dashboard" class="active"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                <li><a href="#servicos"><i class="fas fa-concierge-bell"></i> Serviços</a></li>
+                <li><a href="#agendamentos"><i class="fas fa-calendar-alt"></i> Agendamentos</a></li>
+                <li><a href="#configuracoes"><i class="fas fa-cog"></i> Configurações</a></li>
+                <li><a href="#sair" id="btn-logout"><i class="fas fa-sign-out-alt"></i> Sair</a></li>
+            </ul>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="header">
+                <h2>Dashboard</h2>
+                <div class="user-info">
+                    <div class="user-avatar" id="user-avatar">A</div>
+                    <div>
+                        <div id="user-name">Administrador</div>
+                        <small id="user-email">admin@oesquimo.com</small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Dashboard Section -->
+            <div id="dashboard" class="section active">
+                <div class="dashboard-cards">
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <div class="card-title">Agendamentos Hoje</div>
+                                <div class="card-value" id="stats-today">0</div>
+                            </div>
+                            <div class="card-icon primary">
+                                <i class="fas fa-calendar-day"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <div class="card-title">Agendamentos Pendentes</div>
+                                <div class="card-value" id="stats-pending">0</div>
+                            </div>
+                            <div class="card-icon warning">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <div class="card-title">Total de Clientes</div>
+                                <div class="card-value" id="stats-clients">0</div>
+                            </div>
+                            <div class="card-icon success">
+                                <i class="fas fa-users"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <div class="card-title">Faturamento Mensal</div>
+                                <div class="card-value" id="stats-revenue">R$ 0,00</div>
+                            </div>
+                            <div class="card-icon danger">
+                                <i class="fas fa-dollar-sign"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3>Últimos Agendamentos</h3>
+                        <button class="btn btn-primary" id="btn-refresh"><i class="fas fa-sync-alt"></i> Atualizar</button>
+                    </div>
+                    
+                    <table id="appointments-table">
+                        <thead>
+                            <tr>
+                                <th>Cliente</th>
+                                <th>Serviço</th>
+                                <th>Data</th>
+                                <th>Horário</th>
+                                <th>Valor</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="7" style="text-align: center;">Carregando agendamentos...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Serviços Section -->
+            <div id="servicos" class="section">
+                <div class="header">
+                    <h2>Gerenciamento de Serviços</h2>
+                    <button class="btn btn-primary" id="btn-add-service"><i class="fas fa-plus"></i> Novo Serviço</button>
+                </div>
+                
+                <div class="table-container">
+                    <table id="services-table">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Descrição</th>
+                                <th>Preço Base</th>
+                                <th>Tipo</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="6" style="text-align: center;">Carregando serviços...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="form-container hidden" id="service-form">
+                    <h3 id="service-form-title">Adicionar Novo Serviço</h3>
+                    
+                    <div class="form-group">
+                        <label for="service-name">Nome do Serviço</label>
+                        <input type="text" id="service-name" placeholder="Ex: Instalação de Ar Condicionado">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="service-desc">Descrição</label>
+                        <textarea id="service-desc" placeholder="Descreva o serviço"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="service-price">Preço Base (R$)</label>
+                        <input type="number" id="service-price" placeholder="0,00" step="0.01" min="0">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="service-icon">Ícone (Font Awesome)</label>
+                        <input type="text" id="service-icon" placeholder="fas fa-tools">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="service-type">Tipo de Serviço</label>
+                        <select id="service-type">
+                            <option value="">Selecione o tipo</option>
+                            <option value="with_equipment">Com equipamento</option>
+                            <option value="without_equipment">Sem equipamento</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="service-requires-electrical"> Requer parte elétrica
+                        </label>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="service-status">Status</label>
+                        <select id="service-status">
+                            <option value="active">Ativo</option>
+                            <option value="inactive">Inativo</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button class="btn btn-secondary" id="btn-cancel-service">Cancelar</button>
+                        <button class="btn btn-success" id="btn-save-service">Salvar Serviço</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Agendamentos Section -->
+            <div id="agendamentos" class="section">
+                <div class="header">
+                    <h2>Gerenciamento de Agendamentos</h2>
+                    <div>
+                        <select id="filter-status" style="padding: 8px; border-radius: var(--radius); margin-right: 10px;">
+                            <option value="">Todos os status</option>
+                            <option value="pending">Pendente</option>
+                            <option value="confirmed">Confirmado</option>
+                            <option value="completed">Concluído</option>
+                            <option value="canceled">Cancelado</option>
+                        </select>
+                        <button class="btn btn-primary" id="btn-filter"><i class="fas fa-filter"></i> Filtrar</button>
+                    </div>
+                </div>
+                
+                <div class="table-container">
+                    <table id="all-appointments-table">
+                        <thead>
+                            <tr>
+                                <th>Cliente</th>
+                                <th>Serviço</th>
+                                <th>Data</th>
+                                <th>Horário</th>
+                                <th>Valor</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="7" style="text-align: center;">Carregando agendamentos...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Configurações Section -->
+            <div id="configuracoes" class="section">
+                <div class="header">
+                    <h2>Configurações do Sistema</h2>
+                </div>
+                
+                <div class="form-container">
+                    <h3>Configurações Gerais</h3>
+                    
+                    <div class="form-group">
+                        <label for="config-company-name">Nome da Empresa</label>
+                        <input type="text" id="config-company-name" placeholder="O Esquimó">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="config-whatsapp">Número do WhatsApp</label>
+                        <input type="text" id="config-whatsapp" placeholder="+5581983259341">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="config-btu-options">Opções de BTU (separadas por vírgula)</label>
+                        <textarea id="config-btu-options" placeholder="9000 BTU/h, 12000 BTU/h, 18000 BTU/h"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="config-equipment-types">Tipos de Equipamento (separados por vírgula)</label>
+                        <textarea id="config-equipment-types" placeholder="Janela, Split Hi-Wall, Split Piso-Teto"></textarea>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button class="btn btn-success" id="btn-save-config"><i class="fas fa-save"></i> Salvar Configurações</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        <label>Conteúdo / URL:</label>
-        <input type="text" id="conteudo" placeholder="Texto ou URL da imagem" required>
+    <!-- Modal para visualizar/editar agendamento -->
+    <div id="appointment-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Detalhes do Agendamento</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div id="appointment-details">
+                <!-- Conteúdo será preenchido via JavaScript -->
+            </div>
+        </div>
+    </div>
 
-        <button type="submit">Adicionar</button>
-      </form>
-    </section>
-
-    <section>
-      <h2>Componentes Salvos</h2>
-      <div id="listaComponentes"></div>
-    </section>
-  </main>
-
-  <script type="module" src="assets/js/admin.js"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
+    
+    <!-- Nossos scripts -->
+    <script src="scripts/firebase-config.js"></script>
+    <script src="scripts/utils.js"></script>
+    <script src="scripts/auth.js"></script>
+    <script src="scripts/dashboard.js"></script>
+    <script src="scripts/services.js"></script>
+    <script src="scripts/appointments.js"></script>
+    <script src="scripts/config.js"></script>
+    <script src="scripts/admin.js"></script>
 </body>
 </html>
