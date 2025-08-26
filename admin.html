@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel Administrativo - O Esquimó</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Corrigindo o carregamento das fontes -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous">
     <style>
         :root {
             --primary: #3498db;
@@ -32,7 +33,6 @@
             line-height: 1.6;
         }
         
-        /* Estilos para a tela de login */
         .login-container {
             display: flex;
             justify-content: center;
@@ -113,7 +113,6 @@
             display: none;
         }
         
-        /* Estilos para o painel administrativo */
         .admin-container {
             display: flex;
             min-height: 100vh;
@@ -635,7 +634,7 @@
                     
                     <div class="form-group">
                         <label for="service-icon">Ícone (Font Awesome)</label>
-                        <input type="text" id="service-icon" placeholder="fas fa-tools">
+                        <input type="text" id="service-icon" placeholder="fas fa-tools" value="fas fa-tools">
                     </div>
                     
                     <div class="form-group">
@@ -768,6 +767,9 @@
         const loginMessage = document.getElementById('login-message');
         const btnLogout = document.getElementById('btn-logout');
 
+        // Variáveis globais
+        let editingServiceId = null;
+
         // Função para mostrar notificação
         function showNotification(message, type = 'success') {
             const notification = document.createElement('div');
@@ -784,6 +786,29 @@
             }, 3000);
         }
 
+        // Função para verificar autenticação
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                currentUser = user;
+                loginScreen.classList.add('hidden');
+                adminPanel.classList.remove('hidden');
+                
+                // Atualizar informações do usuário
+                document.getElementById('user-avatar').textContent = user.email.charAt(0).toUpperCase();
+                document.getElementById('user-name').textContent = user.displayName || user.email;
+                document.getElementById('user-email').textContent = user.email;
+                
+                // Carregar dados
+                loadDashboardData();
+                loadServices();
+                loadConfig();
+            } else {
+                currentUser = null;
+                loginScreen.classList.remove('hidden');
+                adminPanel.classList.add('hidden');
+            }
+        });
+
         // Evento de login
         btnLogin.addEventListener('click', () => {
             const email = loginEmail.value;
@@ -796,19 +821,8 @@
             
             auth.signInWithEmailAndPassword(email, password)
                 .then((userCredential) => {
-                    // Login bem-sucedido
-                    loginScreen.classList.add('hidden');
-                    adminPanel.classList.remove('hidden');
+                    showNotification('Login realizado com sucesso!');
                     loginMessage.textContent = '';
-                    
-                    // Atualizar informações do usuário
-                    const user = userCredential.user;
-                    document.getElementById('user-avatar').textContent = user.email.charAt(0).toUpperCase();
-                    document.getElementById('user-name').textContent = user.displayName || user.email;
-                    document.getElementById('user-email').textContent = user.email;
-                    
-                    // Carregar dados iniciais
-                    loadDashboardData();
                 })
                 .catch((error) => {
                     loginMessage.textContent = 'E-mail ou senha inválidos.';
@@ -821,8 +835,6 @@
             auth.signOut()
                 .then(() => {
                     showNotification('Logout realizado com sucesso!');
-                    adminPanel.classList.add('hidden');
-                    loginScreen.classList.remove('hidden');
                 })
                 .catch((error) => {
                     console.error('Erro ao fazer logout:', error);
@@ -865,60 +877,47 @@
             });
         });
 
-        // Carregar dados do dashboard
+        // Carregar dados do dashboard (versão simplificada para evitar erros de índice)
         async function loadDashboardData() {
             try {
-                // Carregar agendamentos de hoje
+                // Carregar todos os agendamentos primeiro
+                const allAppointments = await db.collection('agendamentos').get();
+                
                 const today = new Date();
                 const todayFormatted = formatDate(today);
                 
-                const todaySnapshot = await db.collection('agendamentos')
-                    .where('data', '==', todayFormatted)
-                    .get();
-                
-                document.getElementById('stats-today').textContent = todaySnapshot.size;
-                
-                // Carregar agendamentos pendentes
-                const pendingSnapshot = await db.collection('agendamentos')
-                    .where('status', '==', 'pending')
-                    .get();
-                
-                document.getElementById('stats-pending').textContent = pendingSnapshot.size;
-                
-                // Carregar todos os agendamentos para contar clientes únicos
-                const allAppointments = await db.collection('agendamentos').get();
+                let todayCount = 0;
+                let pendingCount = 0;
                 const uniqueClients = new Set();
+                let totalRevenue = 0;
                 
                 allAppointments.forEach(doc => {
                     const data = doc.data();
+                    
+                    // Contar agendamentos de hoje
+                    if (data.data === todayFormatted) {
+                        todayCount++;
+                    }
+                    
+                    // Contar agendamentos pendentes
+                    if (data.status === 'pending') {
+                        pendingCount++;
+                    }
+                    
+                    // Contar clientes únicos
                     if (data.cliente && data.cliente.telefone) {
                         uniqueClients.add(data.cliente.telefone);
                     }
-                });
-                
-                document.getElementById('stats-clients').textContent = uniqueClients.size;
-                
-                // Calcular faturamento do mês
-                const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-                const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-                
-                const firstDayFormatted = formatDate(firstDay);
-                const lastDayFormatted = formatDate(lastDay);
-                
-                const revenueSnapshot = await db.collection('agendamentos')
-                    .where('data', '>=', firstDayFormatted)
-                    .where('data', '<=', lastDayFormatted)
-                    .where('status', 'in', ['confirmed', 'completed'])
-                    .get();
-                
-                let totalRevenue = 0;
-                revenueSnapshot.forEach(doc => {
-                    const data = doc.data();
-                    if (data.total) {
+                    
+                    // Calcular faturamento (considerando apenas confirmados e concluídos)
+                    if (data.status === 'confirmed' || data.status === 'completed') {
                         totalRevenue += parseFloat(data.total) || 0;
                     }
                 });
                 
+                document.getElementById('stats-today').textContent = todayCount;
+                document.getElementById('stats-pending').textContent = pendingCount;
+                document.getElementById('stats-clients').textContent = uniqueClients.size;
                 document.getElementById('stats-revenue').textContent = `R$ ${totalRevenue.toFixed(2)}`;
                 
                 // Carregar últimos agendamentos
@@ -1103,6 +1102,97 @@
             });
         }
 
+        // Função para resetar formulário de serviço
+        function resetServiceForm() {
+            document.getElementById('service-name').value = '';
+            document.getElementById('service-desc').value = '';
+            document.getElementById('service-price').value = '';
+            document.getElementById('service-icon').value = 'fas fa-tools';
+            document.getElementById('service-type').value = '';
+            document.getElementById('service-requires-electrical').checked = false;
+            document.getElementById('service-status').value = 'active';
+            editingServiceId = null;
+        }
+
+        // Função para editar serviço
+        async function editService(serviceId) {
+            try {
+                const serviceDoc = await db.collection('services').doc(serviceId).get();
+                
+                if (serviceDoc.exists) {
+                    editingServiceId = serviceId;
+                    const data = serviceDoc.data();
+                    
+                    document.getElementById('service-form-title').textContent = 'Editar Serviço';
+                    document.getElementById('service-form').classList.remove('hidden');
+                    
+                    document.getElementById('service-name').value = data.nome || '';
+                    document.getElementById('service-desc').value = data.descricao || '';
+                    document.getElementById('service-price').value = data.precoBase || '';
+                    document.getElementById('service-icon').value = data.icone || 'fas fa-tools';
+                    document.getElementById('service-type').value = data.requerEquipamento ? 'with_equipment' : 'without_equipment';
+                    document.getElementById('service-requires-electrical').checked = data.requerParteEletrica || false;
+                    document.getElementById('service-status').value = data.ativo ? 'active' : 'inactive';
+                }
+            } catch (error) {
+                console.error('Erro ao carregar serviço para edição:', error);
+                showNotification('Erro ao carregar serviço.', 'error');
+            }
+        }
+
+        // Função para salvar serviço
+        async function saveService() {
+            try {
+                const serviceData = {
+                    nome: document.getElementById('service-name').value,
+                    descricao: document.getElementById('service-desc').value,
+                    precoBase: parseFloat(document.getElementById('service-price').value) || 0,
+                    icone: document.getElementById('service-icon').value,
+                    requerEquipamento: document.getElementById('service-type').value === 'with_equipment',
+                    requerParteEletrica: document.getElementById('service-requires-electrical').checked,
+                    ativo: document.getElementById('service-status').value === 'active',
+                    atualizadoEm: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                
+                if (!serviceData.nome) {
+                    showNotification('Por favor, informe o nome do serviço.', 'error');
+                    return;
+                }
+                
+                if (editingServiceId) {
+                    // Atualizar serviço existente
+                    await db.collection('services').doc(editingServiceId).update(serviceData);
+                    showNotification('Serviço atualizado com sucesso!');
+                } else {
+                    // Criar novo serviço
+                    serviceData.criadoEm = firebase.firestore.FieldValue.serverTimestamp();
+                    await db.collection('services').add(serviceData);
+                    showNotification('Serviço criado com sucesso!');
+                }
+                
+                document.getElementById('service-form').classList.add('hidden');
+                loadServices();
+                
+            } catch (error) {
+                console.error('Erro ao salvar serviço:', error);
+                showNotification('Erro ao salvar serviço.', 'error');
+            }
+        }
+
+        // Função para excluir serviço
+        async function deleteService(serviceId) {
+            if (confirm('Tem certeza que deseja excluir este serviço?')) {
+                try {
+                    await db.collection('services').doc(serviceId).delete();
+                    showNotification('Serviço excluído com sucesso!');
+                    loadServices();
+                } catch (error) {
+                    console.error('Erro ao excluir serviço:', error);
+                    showNotification('Erro ao excluir serviço.', 'error');
+                }
+            }
+        }
+
         // Carregar configurações
         async function loadConfig() {
             try {
@@ -1127,22 +1217,52 @@
             }
         }
 
-        // Verificar se o usuário já está logado
-        auth.onAuthStateChanged((user) => {
-            if (user) {
-                // Usuário já está logado
-                loginScreen.classList.add('hidden');
-                adminPanel.classList.remove('hidden');
+        // Função para salvar configurações
+        async function saveConfig() {
+            try {
+                const btuOptions = document.getElementById('config-btu-options').value
+                    .split(',')
+                    .map(item => item.trim())
+                    .filter(item => item !== '');
                 
-                // Atualizar informações do usuário
-                document.getElementById('user-avatar').textContent = user.email.charAt(0).toUpperCase();
-                document.getElementById('user-name').textContent = user.displayName || user.email;
-                document.getElementById('user-email').textContent = user.email;
+                const equipmentTypes = document.getElementById('config-equipment-types').value
+                    .split(',')
+                    .map(item => item.trim())
+                    .filter(item => item !== '');
                 
-                // Carregar dados iniciais
-                loadDashboardData();
+                const configData = {
+                    nomeEmpresa: document.getElementById('config-company-name').value,
+                    whatsapp: document.getElementById('config-whatsapp').value,
+                    btuOptions: btuOptions,
+                    equipmentTypes: equipmentTypes,
+                    atualizadoEm: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                
+                await db.collection('configuracoes').doc('geral').set(configData, { merge: true });
+                showNotification('Configurações salvas com sucesso!');
+                
+            } catch (error) {
+                console.error('Erro ao salvar configurações:', error);
+                showNotification('Erro ao salvar configurações.', 'error');
             }
+        }
+
+        // Adicionar eventos
+        document.getElementById('btn-add-service').addEventListener('click', () => {
+            editingServiceId = null;
+            document.getElementById('service-form-title').textContent = 'Adicionar Novo Serviço';
+            document.getElementById('service-form').classList.remove('hidden');
+            resetServiceForm();
         });
+
+        document.getElementById('btn-cancel-service').addEventListener('click', () => {
+            document.getElementById('service-form').classList.add('hidden');
+        });
+
+        document.getElementById('btn-save-service').addEventListener('click', saveService);
+        document.getElementById('btn-save-config').addEventListener('click', saveConfig);
+        document.getElementById('btn-refresh').addEventListener('click', loadDashboardData);
+        document.getElementById('btn-filter').addEventListener('click', loadAllAppointments);
 
         // Inicializar a aplicação
         document.addEventListener('DOMContentLoaded', function() {
