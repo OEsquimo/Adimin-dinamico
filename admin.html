@@ -5,7 +5,117 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel Administrativo - O Esquimó</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="styles/admin.css">
+    <style>
+        :root {
+            --primary: #3498db;
+            --secondary: #2c3e50;
+            --accent: #27ae60;
+            --warning: #e67e22;
+            --danger: #e74c3c;
+            --light: #ecf0f1;
+            --dark: #2c3e50;
+            --gray: #7f8c8d;
+            --shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            --radius: 10px;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+        }
+        
+        .login-form {
+            background: white;
+            border-radius: var(--radius);
+            padding: 30px;
+            box-shadow: var(--shadow);
+            width: 100%;
+            max-width: 400px;
+        }
+        
+        .login-form h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: var(--secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--secondary);
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: var(--radius);
+            font-size: 1rem;
+        }
+        
+        .btn {
+            padding: 12px 20px;
+            border-radius: var(--radius);
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+        
+        .login-message {
+            margin-top: 15px;
+            color: var(--danger);
+            text-align: center;
+            font-size: 14px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+    </style>
+    <!-- Firebase SDK (versão compatível) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 </head>
 <body>
     <!-- Login Screen -->
@@ -20,302 +130,121 @@
                 <label for="login-password">Senha</label>
                 <input type="password" id="login-password" placeholder="Sua senha">
             </div>
-            <button id="btn-login" class="btn btn-primary" style="width: 100%">Entrar</button>
-            <p id="login-message" style="margin-top: 15px; color: var(--danger); text-align: center;"></p>
+            <button id="btn-login" class="btn btn-primary">Entrar</button>
+            <p id="login-message" class="login-message"></p>
         </div>
     </div>
 
-    <!-- Admin Panel -->
-    <div id="admin-panel" class="admin-container hidden">
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <div class="sidebar-header">
-                <h1><i class="fas fa-snowflake"></i> O Esquimó</h1>
-                <p>Painel Administrativo</p>
-            </div>
-            
-            <ul class="sidebar-menu">
-                <li><a href="#dashboard" class="active"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
-                <li><a href="#servicos"><i class="fas fa-concierge-bell"></i> Serviços</a></li>
-                <li><a href="#agendamentos"><i class="fas fa-calendar-alt"></i> Agendamentos</a></li>
-                <li><a href="#configuracoes"><i class="fas fa-cog"></i> Configurações</a></li>
-                <li><a href="#sair" id="btn-logout"><i class="fas fa-sign-out-alt"></i> Sair</a></li>
-            </ul>
-        </div>
+    <!-- Admin Panel (inicialmente oculto) -->
+    <div id="admin-panel" class="hidden">
+        <!-- O conteúdo do painel administrativo será carregado aqui após o login -->
+    </div>
+
+    <script>
+        // Configuração do Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyCFf5gckKE6rg7MFuBYAO84aV-sNrdY2JQ",
+            authDomain: "agendamento-esquimo.firebaseapp.com",
+            projectId: "agendamento-esquimo",
+            storageBucket: "agendamento-esquimo.appspot.com",
+            messagingSenderId: "348946727206",
+            appId: "1:348946727206:web:f5989788f13c259be0c1e7"
+        };
+
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
         
-        <!-- Main Content -->
-        <div class="main-content">
-            <div class="header">
-                <h2>Dashboard</h2>
-                <div class="user-info">
-                    <div class="user-avatar" id="user-avatar">A</div>
-                    <div>
-                        <div id="user-name">Administrador</div>
-                        <small id="user-email">admin@oesquimo.com</small>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Dashboard Section -->
-            <div id="dashboard" class="section active">
-                <div class="dashboard-cards">
-                    <div class="card">
-                        <div class="card-header">
-                            <div>
-                                <div class="card-title">Agendamentos Hoje</div>
-                                <div class="card-value" id="stats-today">0</div>
-                            </div>
-                            <div class="card-icon primary">
-                                <i class="fas fa-calendar-day"></i>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="card">
-                        <div class="card-header">
-                            <div>
-                                <div class="card-title">Agendamentos Pendentes</div>
-                                <div class="card-value" id="stats-pending">0</div>
-                            </div>
-                            <div class="card-icon warning">
-                                <i class="fas fa-clock"></i>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="card">
-                        <div class="card-header">
-                            <div>
-                                <div class="card-title">Total de Clientes</div>
-                                <div class="card-value" id="stats-clients">0</div>
-                            </div>
-                            <div class="card-icon success">
-                                <i class="fas fa-users"></i>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="card">
-                        <div class="card-header">
-                            <div>
-                                <div class="card-title">Faturamento Mensal</div>
-                                <div class="card-value" id="stats-revenue">R$ 0,00</div>
-                            </div>
-                            <div class="card-icon danger">
-                                <i class="fas fa-dollar-sign"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="table-container">
-                    <div class="table-header">
-                        <h3>Últimos Agendamentos</h3>
-                        <button class="btn btn-primary" id="btn-refresh"><i class="fas fa-sync-alt"></i> Atualizar</button>
-                    </div>
-                    
-                    <table id="appointments-table">
-                        <thead>
-                            <tr>
-                                <th>Cliente</th>
-                                <th>Serviço</th>
-                                <th>Data</th>
-                                <th>Horário</th>
-                                <th>Valor</th>
-                                <th>Status</th>
-                                <th>Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td colspan="7" style="text-align: center;">Carregando agendamentos...</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            
-            <!-- Serviços Section -->
-            <div id="servicos" class="section">
-                <div class="header">
-                    <h2>Gerenciamento de Serviços</h2>
-                    <button class="btn btn-primary" id="btn-add-service"><i class="fas fa-plus"></i> Novo Serviço</button>
-                </div>
-                
-                <div class="table-container">
-                    <table id="services-table">
-                        <thead>
-                            <tr>
-                                <th>Nome</th>
-                                <th>Descrição</th>
-                                <th>Preço Base</th>
-                                <th>Tipo</th>
-                                <th>Status</th>
-                                <th>Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td colspan="6" style="text-align: center;">Carregando serviços...</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                
-                <div class="form-container hidden" id="service-form">
-                    <h3 id="service-form-title">Adicionar Novo Serviço</h3>
-                    
-                    <div class="form-group">
-                        <label for="service-name">Nome do Serviço</label>
-                        <input type="text" id="service-name" placeholder="Ex: Instalação de Ar Condicionado">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="service-desc">Descrição</label>
-                        <textarea id="service-desc" placeholder="Descreva o serviço"></textarea>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="service-price">Preço Base (R$)</label>
-                        <input type="number" id="service-price" placeholder="0,00" step="0.01" min="0">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="service-icon">Ícone (Font Awesome)</label>
-                        <input type="text" id="service-icon" placeholder="fas fa-tools">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="service-type">Tipo de Serviço</label>
-                        <select id="service-type">
-                            <option value="">Selecione o tipo</option>
-                            <option value="with_equipment">Com equipamento</option>
-                            <option value="without_equipment">Sem equipamento</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>
-                            <input type="checkbox" id="service-requires-electrical"> Requer parte elétrica
-                        </label>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="service-status">Status</label>
-                        <select id="service-status">
-                            <option value="active">Ativo</option>
-                            <option value="inactive">Inativo</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-actions">
-                        <button class="btn btn-secondary" id="btn-cancel-service">Cancelar</button>
-                        <button class="btn btn-success" id="btn-save-service">Salvar Serviço</button>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Agendamentos Section -->
-            <div id="agendamentos" class="section">
-                <div class="header">
-                    <h2>Gerenciamento de Agendamentos</h2>
-                    <div>
-                        <select id="filter-status" style="padding: 8px; border-radius: var(--radius); margin-right: 10px;">
-                            <option value="">Todos os status</option>
-                            <option value="pending">Pendente</option>
-                            <option value="confirmed">Confirmado</option>
-                            <option value="completed">Concluído</option>
-                            <option value="canceled">Cancelado</option>
-                        </select>
-                        <button class="btn btn-primary" id="btn-filter"><i class="fas fa-filter"></i> Filtrar</button>
-                    </div>
-                </div>
-                
-                <div class="table-container">
-                    <table id="all-appointments-table">
-                        <thead>
-                            <tr>
-                                <th>Cliente</th>
-                                <th>Serviço</th>
-                                <th>Data</th>
-                                <th>Horário</th>
-                                <th>Valor</th>
-                                <th>Status</th>
-                                <th>Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td colspan="7" style="text-align: center;">Carregando agendamentos...</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            
-            <!-- Configurações Section -->
-            <div id="configuracoes" class="section">
-                <div class="header">
-                    <h2>Configurações do Sistema</h2>
-                </div>
-                
-                <div class="form-container">
-                    <h3>Configurações Gerais</h3>
-                    
-                    <div class="form-group">
-                        <label for="config-company-name">Nome da Empresa</label>
-                        <input type="text" id="config-company-name" placeholder="O Esquimó">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="config-whatsapp">Número do WhatsApp</label>
-                        <input type="text" id="config-whatsapp" placeholder="+5581983259341">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="config-btu-options">Opções de BTU (separadas por vírgula)</label>
-                        <textarea id="config-btu-options" placeholder="9000 BTU/h, 12000 BTU/h, 18000 BTU/h"></textarea>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="config-equipment-types">Tipos de Equipamento (separados por vírgula)</label>
-                        <textarea id="config-equipment-types" placeholder="Janela, Split Hi-Wall, Split Piso-Teto"></textarea>
-                    </div>
-                    
-                    <div class="form-actions">
-                        <button class="btn btn-success" id="btn-save-config"><i class="fas fa-save"></i> Salvar Configurações</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+        // Elementos da interface
+        const loginScreen = document.getElementById('login-screen');
+        const adminPanel = document.getElementById('admin-panel');
+        const loginEmail = document.getElementById('login-email');
+        const loginPassword = document.getElementById('login-password');
+        const btnLogin = document.getElementById('btn-login');
+        const loginMessage = document.getElementById('login-message');
 
-    <!-- Modal para visualizar/editar agendamento -->
-    <div id="appointment-modal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Detalhes do Agendamento</h3>
-                <button class="modal-close">&times;</button>
-            </div>
-            <div id="appointment-details">
-                <!-- Conteúdo será preenchido via JavaScript -->
-            </div>
-        </div>
-    </div>
+        // Evento de login
+        btnLogin.addEventListener('click', () => {
+            const email = loginEmail.value;
+            const password = loginPassword.value;
+            
+            if (!email || !password) {
+                loginMessage.textContent = 'Por favor, preencha todos os campos.';
+                return;
+            }
+            
+            auth.signInWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    // Login bem-sucedido
+                    loginScreen.classList.add('hidden');
+                    adminPanel.classList.remove('hidden');
+                    loginMessage.textContent = '';
+                    
+                    // Carregar o conteúdo do painel administrativo
+                    loadAdminPanel();
+                })
+                .catch((error) => {
+                    loginMessage.textContent = 'E-mail ou senha inválidos.';
+                    console.error('Erro de login:', error);
+                });
+        });
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
-    
-    <!-- Nossos scripts -->
-    <script src="scripts/firebase-config.js"></script>
-    <script src="scripts/utils.js"></script>
-    <script src="scripts/auth.js"></script>
-    <script src="scripts/dashboard.js"></script>
-    <script src="scripts/services.js"></script>
-    <script src="scripts/appointments.js"></script>
-    <script src="scripts/config.js"></script>
-    <script src="scripts/admin.js"></script>
+        // Função para carregar o painel administrativo após o login
+        function loadAdminPanel() {
+            // Carrega o conteúdo completo do painel
+            fetch('admin-panel-content.html')
+                .then(response => response.text())
+                .then(data => {
+                    adminPanel.innerHTML = data;
+                    initAdminPanel();
+                })
+                .catch(error => {
+                    console.error('Erro ao carregar o painel:', error);
+                    adminPanel.innerHTML = `
+                        <div style="padding: 20px;">
+                            <h1>Painel Administrativo</h1>
+                            <p>Conteúdo do painel carregado com sucesso!</p>
+                            <button id="btn-logout" class="btn btn-primary">Sair</button>
+                        </div>
+                    `;
+                    
+                    // Adicionar evento de logout
+                    document.getElementById('btn-logout').addEventListener('click', () => {
+                        auth.signOut().then(() => {
+                            adminPanel.classList.add('hidden');
+                            loginScreen.classList.remove('hidden');
+                        });
+                    });
+                });
+        }
+
+        // Inicializar funcionalidades do painel
+        function initAdminPanel() {
+            // Aqui você inicializaria todas as funcionalidades do painel
+            console.log('Painel administrativo inicializado');
+            
+            // Adicionar evento de logout
+            const logoutBtn = document.getElementById('btn-logout');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', () => {
+                    auth.signOut().then(() => {
+                        adminPanel.classList.add('hidden');
+                        loginScreen.classList.remove('hidden');
+                    });
+                });
+            }
+        }
+
+        // Verificar se o usuário já está logado
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                // Usuário já está logado
+                loginScreen.classList.add('hidden');
+                adminPanel.classList.remove('hidden');
+                loadAdminPanel();
+            }
+        });
+    </script>
 </body>
 </html>
