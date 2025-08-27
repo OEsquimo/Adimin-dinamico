@@ -1,7 +1,7 @@
 // scripts/admin.js
 
 // Importa as funções e instâncias do Firebase
-import { auth, signInWithEmailAndPassword, onAuthStateChanged, signOut, db, collection, getDocs, doc, updateDoc, deleteDoc } from './firebase-config.js';
+import { auth, signInWithEmailAndPassword, onAuthStateChanged, signOut, db, collection, getDocs, doc, updateDoc, deleteDoc, query, where } from './firebase-config.js';
 
 // Adiciona um listener para garantir que o script só rode após o DOM estar pronto
 document.addEventListener('DOMContentLoaded', () => {
@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const dashboardSection = document.getElementById('dashboard-section');
     const loginForm = document.getElementById('login-form');
     const logoutBtn = document.getElementById('logout-btn');
+    const agendamentosList = document.getElementById('agendamentos-list');
 
     // Listener para o estado da autenticação
     onAuthStateChanged(auth, (user) => {
@@ -18,14 +19,94 @@ document.addEventListener('DOMContentLoaded', () => {
             // Usuário logado
             loginFormSection.style.display = 'none';
             dashboardSection.style.display = 'block';
-            // Certifique-se de que a função carregarAgendamentos() existe no resto do seu código
-            // carregarAgendamentos(); 
+            carregarAgendamentos(); // Chama a função para carregar os dados
         } else {
             // Usuário deslogado
             loginFormSection.style.display = 'block';
             dashboardSection.style.display = 'none';
         }
     });
+
+    // Função para carregar e exibir os agendamentos
+    async function carregarAgendamentos() {
+        agendamentosList.innerHTML = '<li>Carregando agendamentos...</li>';
+        try {
+            const agendamentosCol = collection(db, 'agendamentos');
+            const agendamentosSnapshot = await getDocs(agendamentosCol);
+
+            if (agendamentosSnapshot.empty) {
+                agendamentosList.innerHTML = '<li>Nenhum agendamento encontrado.</li>';
+                return;
+            }
+
+            agendamentosList.innerHTML = ''; // Limpa a lista
+            agendamentosSnapshot.forEach(doc => {
+                const agendamento = doc.data();
+                const agendamentoItem = document.createElement('li');
+                agendamentoItem.className = 'agendamento-item';
+                agendamentoItem.innerHTML = `
+                    <div>
+                        <strong>Nome:</strong> ${agendamento.nome}<br>
+                        <strong>WhatsApp:</strong> ${agendamento.whatsapp}<br>
+                        <strong>Data:</strong> ${agendamento.data} às ${agendamento.horario}<br>
+                        <strong>Valor:</strong> R$ ${agendamento.valorTotal.toFixed(2)}<br>
+                        <strong>Serviços:</strong> ${agendamento.servicos.map(s => s.nome).join(', ')}
+                    </div>
+                    <div>
+                        <button class="status-btn" data-id="${doc.id}" data-status="Concluído">Concluir</button>
+                        <button class="status-btn" data-id="${doc.id}" data-status="Cancelado">Cancelar</button>
+                    </div>
+                `;
+                agendamentosList.appendChild(agendamentoItem);
+            });
+
+            // Adiciona event listeners aos botões de status
+            document.querySelectorAll('.status-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const id = e.target.getAttribute('data-id');
+                    const novoStatus = e.target.getAttribute('data-status');
+                    const agendamentoDoc = doc(db, 'agendamentos', id);
+                    try {
+                        await updateDoc(agendamentoDoc, {
+                            status: novoStatus
+                        });
+                        alert(`Status do agendamento ${id} atualizado para ${novoStatus}.`);
+                        carregarAgendamentos(); // Recarrega a lista
+                    } catch (error) {
+                        console.error("Erro ao atualizar status: ", error);
+                        alert("Ocorreu um erro ao atualizar o status.");
+                    }
+                });
+            });
+
+        } catch (e) {
+            console.error("Erro ao carregar agendamentos: ", e);
+            agendamentosList.innerHTML = '<li>Erro ao carregar agendamentos.</li>';
+        }
+    }
+
+    // Lógica de navegação do menu
+    document.getElementById('show-agendamentos').addEventListener('click', () => {
+        document.getElementById('agendamentos-section').classList.remove('hidden');
+        document.getElementById('servicos-section').classList.add('hidden');
+        document.getElementById('config-section').classList.add('hidden');
+        carregarAgendamentos();
+    });
+
+    document.getElementById('show-servicos').addEventListener('click', () => {
+        document.getElementById('agendamentos-section').classList.add('hidden');
+        document.getElementById('servicos-section').classList.remove('hidden');
+        document.getElementById('config-section').classList.add('hidden');
+        // TODO: Implementar lógica para carregar e gerenciar serviços
+    });
+
+    document.getElementById('show-config').addEventListener('click', () => {
+        document.getElementById('agendamentos-section').classList.add('hidden');
+        document.getElementById('servicos-section').classList.add('hidden');
+        document.getElementById('config-section').classList.remove('hidden');
+        // TODO: Implementar lógica para carregar e gerenciar configurações
+    });
+
 
     // Login do administrador
     if (loginForm) {
@@ -67,5 +148,4 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ... (o restante do seu código para gerenciar agendamentos, serviços, etc.) ...
 });
