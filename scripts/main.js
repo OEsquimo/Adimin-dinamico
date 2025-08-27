@@ -1,6 +1,5 @@
 // scripts/main.js
 
-// Importa as funções e instâncias do Firebase
 import { db, collection, getDocs, addDoc } from './firebase-config.js';
 
 // Função para adicionar um carimbo de data e hora aos arquivos para forçar a atualização
@@ -34,201 +33,131 @@ function mostrarDataAtualizacao() {
 mostrarDataAtualizacao();
 
 
-// Adiciona o listener para garantir que o script só rode após o DOM estar pronto
 document.addEventListener('DOMContentLoaded', () => {
-    
-    // Variáveis globais para o carrinho e serviços
-    let servicosDisponiveis = [];
-    let carrinho = {}; // { idServico: { ...detalhes, quantidade, opcoesSelecionadas } }
-
-    // Elementos do DOM
+    // Referências aos elementos do DOM
     const servicosGrid = document.getElementById('servicos-grid');
     const orcamentoSection = document.getElementById('orcamento-section');
-    const orcamentoForm = document.getElementById('orcamento-form');
-    const agendamentoSection = document.getElementById('agendamento-section');
+    const orcamentoSummary = document.getElementById('orcamento-summary');
+    const totalPriceSpan = document.getElementById('total-price');
     const agendamentoForm = document.getElementById('agendamento-form');
-    const carrinhoResumo = document.getElementById('carrinho-resumo');
-    const itensCarrinho = document.getElementById('itens-carrinho');
-    const valorTotalElement = document.getElementById('valor-total');
-    const finalizarOrcamentoBtn = document.getElementById('finalizar-orcamento');
+    
+    // Objeto para armazenar os serviços selecionados
+    let carrinho = {};
 
-    // Função para buscar e renderizar os serviços na página
+    // Função para carregar serviços do Firestore
     async function carregarServicos() {
         try {
             const servicosCol = collection(db, 'servicos');
             const servicosSnapshot = await getDocs(servicosCol);
-            servicosDisponiveis = servicosSnapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
-
-            servicosDisponiveis.forEach(servico => {
-                if (servico.status === 'Ativo') {
-                    const serviceCard = document.createElement('div');
-                    serviceCard.className = 'service-card';
-                    serviceCard.setAttribute('data-id', servico.id);
-                    serviceCard.innerHTML = `
-                        <i class="fa-solid ${servico.icone} icon"></i>
-                        <h3>${servico.nome}</h3>
-                        <p>${servico.descricao}</p>
-                        <p><strong>A partir de: R$ ${servico.precoBase.toFixed(2)}</strong></p>
-                    `;
-                    servicosGrid.appendChild(serviceCard);
-
-                    // Adiciona o evento de clique para seleção
-                    serviceCard.addEventListener('click', () => toggleServico(servico));
+            
+            if (servicosSnapshot.empty) {
+                console.log("Coleção 'servicos' não possui dados. Populando com dados padrão...");
+                const servicosPadrao = [
+                    { nome: "Instalação de Ar Condicionado", valor: 400.00, img: "img/instalacao.webp" },
+                    { nome: "Manutenção Preventiva", valor: 100.00, img: "img/manutencao.webp" },
+                    { nome: "Reparo de Vazamento", valor: 150.00, img: "img/reparo.webp" }
+                ];
+                for (const servico of servicosPadrao) {
+                    await addDoc(servicosCol, servico);
                 }
+                carregarServicos();
+                return;
+            }
+
+            servicosGrid.innerHTML = '';
+            servicosSnapshot.forEach(doc => {
+                const servico = { id: doc.id, ...doc.data() };
+                const servicoCard = document.createElement('div');
+                servicoCard.className = 'servico-card';
+                servicoCard.innerHTML = `
+                    <img src="${servico.img}" alt="${servico.nome}">
+                    <h3>${servico.nome}</h3>
+                    <p>R$ ${servico.valor.toFixed(2)}</p>
+                `;
+                servicoCard.addEventListener('click', () => {
+                    toggleServico(servico, servicoCard);
+                });
+                servicosGrid.appendChild(servicoCard);
             });
         } catch (e) {
             console.error("Erro ao carregar serviços: ", e);
-            alert('Ocorreu um erro ao carregar os serviços. Tente novamente mais tarde.');
+            servicosGrid.innerHTML = '<p>Erro ao carregar os serviços.</p>';
         }
     }
 
-    // Função para adicionar ou remover um serviço do carrinho
-    function toggleServico(servico) {
-        const cardElement = document.querySelector(`.service-card[data-id="${servico.id}"]`);
+    // Função para adicionar/remover serviços do "carrinho"
+    function toggleServico(servico, cardElement) {
         if (carrinho[servico.id]) {
-            // Remove do carrinho
             delete carrinho[servico.id];
             cardElement.classList.remove('selected');
         } else {
-            // Adiciona ao carrinho
-            carrinho[servico.id] = { ...servico, quantidade: 1, opcoes: {} };
+            carrinho[servico.id] = servico;
             cardElement.classList.add('selected');
         }
-        renderizarCarrinhoEFormulario();
+        atualizarOrcamento();
     }
 
-    // Função para renderizar o carrinho e o formulário de orçamento
-    function renderizarCarrinhoEFormulario() {
-        const servicosSelecionados = Object.values(carrinho);
-        orcamentoSection.classList.toggle('hidden', servicosSelecionados.length === 0);
-        
-        // --- Exibe a contagem de serviços selecionados (funcionalidade de contador) ---
-        const totalItens = Object.keys(carrinho).length;
-        console.log(`Você selecionou ${totalItens} serviços.`);
-        // --- Fim da funcionalidade de contador ---
+    // Função para atualizar o resumo do orçamento
+    function atualizarOrcamento() {
+        let total = 0;
+        let resumoHTML = '<ul>';
+        const servicosSelecionadosArray = Object.values(carrinho);
 
-        // Limpa os conteúdos
-        itensCarrinho.innerHTML = '';
-        orcamentoForm.innerHTML = '';
-        let totalGeral = 0;
-
-        if (servicosSelecionados.length > 0) {
-            servicosSelecionados.forEach(item => {
-                // Renderiza o resumo no carrinho
-                const itemElement = document.createElement('div');
-                itemElement.className = 'item-carrinho';
-                itemElement.innerHTML = `
-                    <p><strong>${item.nome}</strong></p>
-                    <div class="detalhes-item">
-                        <span>${item.quantidade} x R$ ${item.precoBase.toFixed(2)}</span>
-                        <span>R$ ${(item.quantidade * item.precoBase).toFixed(2)}</span>
-                    </div>
-                `;
-                itensCarrinho.appendChild(itemElement);
-                totalGeral += item.quantidade * item.precoBase;
-
-                // Renderiza o formulário de detalhes para cada item
-                const itemFormDiv = document.createElement('div');
-                itemFormDiv.innerHTML = `<h3>Detalhes do serviço: ${item.nome}</h3>`;
-                itemFormDiv.className = 'item-form-details';
-                
-                // Campo de quantidade
-                itemFormDiv.innerHTML += `
-                    <div class="form-group">
-                        <label>Quantidade de Aparelhos</label>
-                        <input type="number" min="1" value="${item.quantidade}" class="input-quantidade" data-id="${item.id}">
-                    </div>
-                `;
-
-                // Lógica para campos dinâmicos (BTU, Tipo, Elétrica, Local)
-                if (item.capacidadesBTU && item.capacidadesBTU.length > 0) {
-                    if (item.quantidade > 1) {
-                        for (let i = 0; i < item.quantidade; i++) {
-                            itemFormDiv.innerHTML += `
-                                <div class="sub-bloco">
-                                    <h4>Aparelho ${i + 1}</h4>
-                                    <div class="form-group">
-                                        <label>Capacidade de BTU</label>
-                                        <select class="select-btu" data-id="${item.id}" data-aparelho-index="${i}">
-                                            <option value="">Selecione</option>
-                                            ${item.capacidadesBTU.map(btu => `<option value="${btu}">${btu}</option>`).join('')}
-                                        </select>
-                                    </div>
-                                </div>
-                            `;
-                        }
-                    } else {
-                        itemFormDiv.innerHTML += `
-                            <div class="form-group">
-                                <label>Capacidade de BTU</label>
-                                <select class="select-btu" data-id="${item.id}">
-                                    <option value="">Selecione</option>
-                                    ${item.capacidadesBTU.map(btu => `<option value="${btu}">${btu}</option>`).join('')}
-                                </select>
-                            </div>
-                        `;
-                    }
-                }
-                
-                itemFormDiv.innerHTML += `
-                    <div class="form-group">
-                        <label>Observação (Opcional)</label>
-                        <textarea class="input-observacao" data-id="${item.id}" rows="2"></textarea>
-                    </div>
-                `;
-                
-                orcamentoForm.appendChild(itemFormDiv);
+        if (servicosSelecionadosArray.length === 0) {
+            orcamentoSection.classList.add('hidden');
+            orcamentoSummary.innerHTML = '<p>Nenhum serviço selecionado.</p>';
+        } else {
+            orcamentoSection.classList.remove('hidden');
+            servicosSelecionadosArray.forEach(servico => {
+                total += servico.valor;
+                resumoHTML += `<li>${servico.nome}: R$ ${servico.valor.toFixed(2)}</li>`;
             });
-
-            valorTotalElement.textContent = `R$ ${totalGeral.toFixed(2)}`;
-            
-            document.querySelectorAll('.input-quantidade').forEach(input => {
-                input.addEventListener('change', (e) => {
-                    const idServico = e.target.getAttribute('data-id');
-                    carrinho[idServico].quantidade = parseInt(e.target.value);
-                    renderizarCarrinhoEFormulario();
-                });
-            });
+            orcamentoSummary.innerHTML = resumoHTML + '</ul>';
         }
+        
+        totalPriceSpan.textContent = `R$ ${total.toFixed(2)}`;
     }
 
-    finalizarOrcamentoBtn.addEventListener('click', () => {
-        document.getElementById('servicos-section').classList.add('hidden');
-        orcamentoSection.classList.add('hidden');
-        agendamentoSection.classList.remove('hidden');
-    });
-
+    // Listener para o formulário de agendamento
     agendamentoForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-
-        const agendamento = {
-            nome: document.getElementById('nome').value,
-            whatsapp: document.getElementById('whatsapp').value,
-            endereco: document.getElementById('endereco').value,
-            data: document.getElementById('data-agendamento').value,
-            horario: document.getElementById('horario-agendamento').value,
-            servicos: Object.values(carrinho),
-            valorTotal: parseFloat(valorTotalElement.textContent.replace('R$ ', '').replace(',', '.')),
-            status: 'Pendente',
-            dataCriacao: new Date()
-        };
         
+        const nome = agendamentoForm.nome.value;
+        const whatsapp = agendamentoForm.whatsapp.value;
+        const endereco = agendamentoForm.endereco.value;
+        const data = agendamentoForm.data.value;
+        const horario = agendamentoForm.horario.value;
+        
+        const valorTotal = Object.values(carrinho).reduce((sum, s) => sum + s.valor, 0);
+        const servicosArray = Object.values(carrinho).map(s => ({ nome: s.nome, valor: s.valor }));
+
+        if (servicosArray.length === 0) {
+            alert("Por favor, selecione pelo menos um serviço.");
+            return;
+        }
+
         try {
-            const agendamentosCol = collection(db, 'agendamentos');
-            const docRef = await addDoc(agendamentosCol, agendamento);
-            
-            alert(`Agendamento realizado com sucesso! Protocolo: ${docRef.id}`);
+            const agendamentoRef = await addDoc(collection(db, "agendamentos"), {
+                nome: nome,
+                whatsapp: whatsapp,
+                endereco: endereco,
+                data: data,
+                horario: horario,
+                servicos: servicosArray,
+                valorTotal: valorTotal,
+                timestamp: new Date()
+            });
+            console.log("Documento de agendamento criado com ID: ", agendamentoRef.id);
+            alert("Agendamento realizado com sucesso! Em breve entraremos em contato.");
             agendamentoForm.reset();
-            
+            carrinho = {};
+            atualizarOrcamento();
         } catch (e) {
             console.error("Erro ao adicionar agendamento: ", e);
-            alert('Ocorreu um erro ao agendar o serviço. Tente novamente.');
+            alert("Ocorreu um erro ao agendar o serviço. Por favor, tente novamente.");
         }
     });
 
+    // Inicia o carregamento dos serviços quando a página é carregada
     carregarServicos();
-
 });
