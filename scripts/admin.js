@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Função para carregar e exibir os agendamentos
+    // Função para carregar e exibir os agendamentos (Função corrigida)
     async function carregarAgendamentos() {
         agendamentosList.innerHTML = '<li>Carregando agendamentos...</li>';
         try {
@@ -71,26 +71,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
             agendamentosList.innerHTML = ''; // Limpa a lista
             agendamentosSnapshot.forEach(doc => {
-                const agendamento = doc.data();
-                const agendamentoItem = document.createElement('li');
-                agendamentoItem.className = 'agendamento-item';
-                agendamentoItem.innerHTML = `
-                    <div>
-                        <strong>Nome:</strong> ${agendamento.nome}<br>
-                        <strong>WhatsApp:</strong> ${agendamento.whatsapp}<br>
-                        <strong>Data:</strong> ${agendamento.data} às ${agendamento.horario}<br>
-                        <strong>Valor:</strong> R$ ${agendamento.valorTotal.toFixed(2)}<br>
-                        <strong>Serviços:</strong> ${agendamento.servicos.map(s => s.nome).join(', ')}
-                    </div>
-                    <div>
-                        <button class="status-btn" data-id="${doc.id}" data-status="Concluído">Concluir</button>
-                        <button class="status-btn" data-id="${doc.id}" data-status="Cancelado">Cancelar</button>
-                    </div>
-                `;
-                agendamentosList.appendChild(agendamentoItem);
+                try {
+                    const agendamento = doc.data();
+                    
+                    // Pega os nomes dos serviços de forma segura, evitando erros se o campo estiver vazio
+                    const nomesServicos = agendamento.servicos
+                        ? agendamento.servicos.map(s => s.nome).join(', ')
+                        : 'Nenhum serviço';
+
+                    const agendamentoItem = document.createElement('li');
+                    agendamentoItem.className = 'agendamento-item';
+                    agendamentoItem.innerHTML = `
+                        <div>
+                            <strong>Nome:</strong> ${agendamento.nome}<br>
+                            <strong>WhatsApp:</strong> ${agendamento.whatsapp}<br>
+                            <strong>Data:</strong> ${agendamento.data} às ${agendamento.horario}<br>
+                            <strong>Valor:</strong> R$ ${agendamento.valorTotal.toFixed(2)}<br>
+                            <strong>Serviços:</strong> ${nomesServicos}
+                        </div>
+                        <div>
+                            <button class="status-btn" data-id="${doc.id}" data-status="Concluído">Concluir</button>
+                            <button class="status-btn" data-id="${doc.id}" data-status="Cancelado">Cancelar</button>
+                        </div>
+                    `;
+                    agendamentosList.appendChild(agendamentoItem);
+
+                } catch (innerError) {
+                    console.error("Erro ao renderizar um agendamento:", innerError, doc.data());
+                    const erroItem = document.createElement('li');
+                    erroItem.innerHTML = `<span style="color: red;">Erro ao carregar agendamento: ${doc.id}. Verifique o console.</span>`;
+                    agendamentosList.appendChild(erroItem);
+                }
             });
 
-            // Adiciona event listeners aos botões de status
+            // Adiciona event listeners aos botões de status (este código não foi alterado)
             document.querySelectorAll('.status-btn').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const id = e.target.getAttribute('data-id');
@@ -127,14 +141,12 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('agendamentos-section').classList.add('hidden');
         document.getElementById('servicos-section').classList.remove('hidden');
         document.getElementById('config-section').classList.add('hidden');
-        // TODO: Implementar lógica para carregar e gerenciar serviços
     });
 
     document.getElementById('show-config').addEventListener('click', () => {
         document.getElementById('agendamentos-section').classList.add('hidden');
         document.getElementById('servicos-section').classList.add('hidden');
         document.getElementById('config-section').classList.remove('hidden');
-        // TODO: Implementar lógica para carregar e gerenciar configurações
     });
 
 
@@ -143,7 +155,6 @@ document.addEventListener('DOMContentLoaded', () => {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault(); 
 
-            // Captura os valores dos campos de e-mail e senha
             const email = loginForm.email.value;
             const password = loginForm.password.value;
             
@@ -169,7 +180,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Lógica para logout (certifique-se de que este botão existe no HTML)
     if (logoutBtn) {
         logoutBtn.addEventListener('click', async () => {
             await signOut(auth);
