@@ -3,6 +3,36 @@
 // Importa as funções e instâncias do Firebase
 import { auth, signInWithEmailAndPassword, onAuthStateChanged, signOut, db, collection, getDocs, doc, updateDoc, deleteDoc } from './firebase-config.js';
 
+// Função para adicionar um carimbo de data e hora aos arquivos para forçar a atualização
+function forcarAtualizacao() {
+    const scripts = document.querySelectorAll('script[src]');
+    const links = document.querySelectorAll('link[href]');
+    const timestamp = Date.now();
+
+    scripts.forEach(script => {
+        if (script.src.includes('scripts/')) {
+            script.src = `${script.src}?v=${timestamp}`;
+        }
+    });
+
+    links.forEach(link => {
+        if (link.href.includes('styles.css')) {
+            link.href = `${link.href}?v=${timestamp}`;
+        }
+    });
+}
+forcarAtualizacao();
+
+// Função para exibir a data e hora da última atualização
+function mostrarDataAtualizacao() {
+    const elementoData = document.getElementById('ultima-atualizacao');
+    if (elementoData) {
+        const dataModificacao = new Date(document.lastModified);
+        elementoData.textContent = "Última atualização: " + dataModificacao.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+}
+mostrarDataAtualizacao();
+
 // Adiciona um listener para garantir que o script só rode após o DOM estar pronto
 document.addEventListener('DOMContentLoaded', () => {
 
