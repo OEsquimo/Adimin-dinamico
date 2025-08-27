@@ -1,7 +1,7 @@
 // scripts/main.js
 
 // Importa as funções e instâncias do Firebase
-import { db, collection, getDocs, addDoc } from '../firebase-config.js';
+import { db, collection, getDocs, addDoc } from './firebase-config.js';
 
 // Variáveis globais para o carrinho e serviços
 let servicosDisponiveis = [];
