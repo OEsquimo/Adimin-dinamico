@@ -3,6 +3,37 @@
 // Importa as funções e instâncias do Firebase
 import { db, collection, getDocs, addDoc } from './firebase-config.js';
 
+// Função para adicionar um carimbo de data e hora aos arquivos para forçar a atualização
+function forcarAtualizacao() {
+    const scripts = document.querySelectorAll('script[src]');
+    const links = document.querySelectorAll('link[href]');
+    const timestamp = Date.now();
+
+    scripts.forEach(script => {
+        if (script.src.includes('scripts/')) {
+            script.src = `${script.src}?v=${timestamp}`;
+        }
+    });
+
+    links.forEach(link => {
+        if (link.href.includes('styles.css')) {
+            link.href = `${link.href}?v=${timestamp}`;
+        }
+    });
+}
+forcarAtualizacao();
+
+// Função para exibir a data e hora da última atualização
+function mostrarDataAtualizacao() {
+    const elementoData = document.getElementById('ultima-atualizacao');
+    if (elementoData) {
+        const dataModificacao = new Date(document.lastModified);
+        elementoData.textContent = "Última atualização: " + dataModificacao.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+}
+mostrarDataAtualizacao();
+
+
 // Adiciona o listener para garantir que o script só rode após o DOM estar pronto
 document.addEventListener('DOMContentLoaded', () => {
     
@@ -74,6 +105,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const servicosSelecionados = Object.values(carrinho);
         orcamentoSection.classList.toggle('hidden', servicosSelecionados.length === 0);
         
+        // --- Exibe a contagem de serviços selecionados (funcionalidade de contador) ---
+        const totalItens = Object.keys(carrinho).length;
+        console.log(`Você selecionou ${totalItens} serviços.`);
+        // --- Fim da funcionalidade de contador ---
+
         // Limpa os conteúdos
         itensCarrinho.innerHTML = '';
         orcamentoForm.innerHTML = '';
@@ -109,7 +145,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Lógica para campos dinâmicos (BTU, Tipo, Elétrica, Local)
                 if (item.capacidadesBTU && item.capacidadesBTU.length > 0) {
-                    // Se houver mais de um aparelho, cria um sub-bloco
                     if (item.quantidade > 1) {
                         for (let i = 0; i < item.quantidade; i++) {
                             itemFormDiv.innerHTML += `
@@ -138,10 +173,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
                 
-                // Lógica para tipo de equipamento, parte elétrica, local de instalação, etc.
-                // ... (implementar conforme a necessidade, usando as propriedades do objeto 'item') ...
-
-                // Campo de observação
                 itemFormDiv.innerHTML += `
                     <div class="form-group">
                         <label>Observação (Opcional)</label>
@@ -154,60 +185,43 @@ document.addEventListener('DOMContentLoaded', () => {
 
             valorTotalElement.textContent = `R$ ${totalGeral.toFixed(2)}`;
             
-            // Adiciona event listeners para os inputs dinâmicos
             document.querySelectorAll('.input-quantidade').forEach(input => {
                 input.addEventListener('change', (e) => {
                     const idServico = e.target.getAttribute('data-id');
                     carrinho[idServico].quantidade = parseInt(e.target.value);
-                    renderizarCarrinhoEFormulario(); // Recarrega o formulário
+                    renderizarCarrinhoEFormulario();
                 });
             });
-            
-            // ... (Adicionar listeners para os outros inputs e selects dinâmicos) ...
         }
     }
 
-    // Evento de clique no botão "Continuar para Agendamento"
     finalizarOrcamentoBtn.addEventListener('click', () => {
-        // Esconde a seção de serviços e orçamento
         document.getElementById('servicos-section').classList.add('hidden');
         orcamentoSection.classList.add('hidden');
-        
-        // Mostra a seção de agendamento
         agendamentoSection.classList.remove('hidden');
-        
-        // TODO: Salvar o orçamento no Firebase aqui antes de continuar
     });
 
-    // Evento de submissão do formulário de agendamento
     agendamentoForm.addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        // Coleta todos os dados do agendamento
         const agendamento = {
             nome: document.getElementById('nome').value,
             whatsapp: document.getElementById('whatsapp').value,
             endereco: document.getElementById('endereco').value,
             data: document.getElementById('data-agendamento').value,
             horario: document.getElementById('horario-agendamento').value,
-            servicos: Object.values(carrinho), // Salva todos os detalhes do carrinho
+            servicos: Object.values(carrinho),
             valorTotal: parseFloat(valorTotalElement.textContent.replace('R$ ', '').replace(',', '.')),
             status: 'Pendente',
             dataCriacao: new Date()
         };
         
-        // Salva no Firestore
         try {
             const agendamentosCol = collection(db, 'agendamentos');
             const docRef = await addDoc(agendamentosCol, agendamento);
             
-            // TODO: Implementar envio de confirmação por WhatsApp e e-mail
-            // Isso geralmente requer uma função de backend (Cloud Functions)
-            
             alert(`Agendamento realizado com sucesso! Protocolo: ${docRef.id}`);
             agendamentoForm.reset();
-            
-            // Opcional: Redirecionar ou mostrar uma mensagem de sucesso
             
         } catch (e) {
             console.error("Erro ao adicionar agendamento: ", e);
@@ -215,7 +229,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Inicializa a página
     carregarServicos();
 
 });
