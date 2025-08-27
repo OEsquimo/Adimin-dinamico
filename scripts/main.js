@@ -28,6 +28,8 @@ async function carregarServicos() {
             ...doc.data()
         }));
 
+        console.log('Dados recebidos do Firebase:', servicosDisponiveis); // <-- ADICIONE ESTA LINHA
+
         servicosDisponiveis.forEach(servico => {
             if (servico.status === 'Ativo') {
                 const serviceCard = document.createElement('div');
