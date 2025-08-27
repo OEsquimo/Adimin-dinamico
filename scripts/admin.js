@@ -1,7 +1,7 @@
 // scripts/admin.js
 
 // Importa as funções e instâncias do Firebase
-import { auth, signInWithEmailAndPassword, onAuthStateChanged, signOut, db, collection, getDocs, doc, updateDoc, deleteDoc, query, where } from './firebase-config.js';
+import { auth, signInWithEmailAndPassword, onAuthStateChanged, signOut, db, collection, getDocs, doc, updateDoc, deleteDoc } from './firebase-config.js';
 
 // Adiciona um listener para garantir que o script só rode após o DOM estar pronto
 document.addEventListener('DOMContentLoaded', () => {
